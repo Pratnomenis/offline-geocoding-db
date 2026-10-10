@@ -19,7 +19,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install System Dependencies (osmium-tool)
-        run: sudo apt-get update && sudo apt-get install -y osmium-tool
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool jq
 
       - name: Install Python Dependencies
         run: |
@@ -29,19 +29,20 @@ jobs:
       - name: Download Ukraine OSM Data
         run: python download.py
 
-      - name: Run Pipeline for Kyiv Region
-        run: python pipeline.py --input data/ukraine-latest.osm.pbf --region kyiv
+      - name: Run Pipeline for All Regions
+        run: |
+          # Читаємо всі ключі (регіони) з regions.json і запускаємо для кожного
+          for region in $(jq -r 'keys[]' regions.json); do
+            echo "Processing region: $region"
+            python pipeline.py --input data/ukraine-latest.osm.pbf --region "$region"
+          done
 
-      - name: Generate Date Tag
-        id: date
-        run: echo "tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Create Release
+      - name: Update Latest Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: release-${{ steps.date.outputs.tag }}
-          name: Database Release ${{ steps.date.outputs.tag }}
-          files: |
-            output/kyiv_region.db
+          tag_name: latest
+          name: "Latest Database Update"
+          body: "Автоматично згенеровані бази даних. Оновлюються щотижня."
+          files: output/*.db
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
