@@ -38,8 +38,7 @@ def create_schema(conn: sqlite3.Connection):
         CREATE VIRTUAL TABLE IF NOT EXISTS places_fts USING fts5(
             name, 
             type,        
-            entity_id,   
-            content=''   
+            entity_id
         );
         
         CREATE INDEX IF NOT EXISTS idx_streets_city_id ON streets(city_id);
