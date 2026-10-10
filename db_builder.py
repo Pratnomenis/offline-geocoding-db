@@ -53,8 +53,8 @@ def insert_cities(conn: sqlite3.Connection, cities: List[Dict[str, Any]]) -> Non
             (city['db_id'], city['name'], city['lat'], city['lon'], city['osm_id'])
         )
         cursor.execute(
-            "INSERT INTO places_fts (rowid, name, type, entity_id) VALUES (?, ?, ?, ?)",
-            (city['db_id'], city['name'], 'city', city['db_id'])
+            "INSERT INTO places_fts (name, type, entity_id) VALUES (?, ?, ?)",
+            (city['name'], 'city', city['db_id'])
         )
 
 def insert_streets(conn: sqlite3.Connection, streets: List[Dict[str, Any]]) -> None:
@@ -65,8 +65,8 @@ def insert_streets(conn: sqlite3.Connection, streets: List[Dict[str, Any]]) -> N
             (street['db_id'], street['city_id'], street['name'], street['lat'], street['lon'], street['osm_id'])
         )
         cursor.execute(
-            "INSERT INTO places_fts (rowid, name, type, entity_id) VALUES (?, ?, ?, ?)",
-            (street['db_id'], street['name'], 'street', street['db_id'])
+            "INSERT INTO places_fts (name, type, entity_id) VALUES (?, ?, ?)",
+            (street['name'], 'street', street['db_id'])
         )
 
 def insert_houses(conn: sqlite3.Connection, houses: List[Dict[str, Any]]) -> None:
@@ -78,8 +78,8 @@ def insert_houses(conn: sqlite3.Connection, houses: List[Dict[str, Any]]) -> Non
         )
         db_id = cursor.lastrowid
         cursor.execute(
-            "INSERT INTO places_fts (rowid, name, type, entity_id) VALUES (?, ?, ?, ?)",
-            (db_id, house['number'], 'house', db_id)
+            "INSERT INTO places_fts (name, type, entity_id) VALUES (?, ?, ?)",
+            (house['number'], 'house', db_id)
         )
 
 def build_database(db_path: Path, cities: List[Dict], streets: List[Dict], houses: List[Dict]):
