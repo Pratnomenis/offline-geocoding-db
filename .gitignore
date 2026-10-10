@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Data and output directories
+data/
+output/
+*.db
+*.pbf
+
+# OS specific
+.DS_Store
+Thumbs.db
