@@ -3,7 +3,7 @@ import json
 import logging
 import subprocess
 from pathlib import Path
-from parser import CityParser, AddressParser
+from parser import CityParser, AddressParser, DistrictMatcher
 from db_builder import build_database
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -45,7 +45,9 @@ def main():
 
     # Step 2: Parse Cities (Pass 1)
     logger.info("Pass 1: Extracting cities...")
-    city_parser = CityParser(region_name=args.region)
+    region_name_uk = regions[args.region].get('name_uk', args.region)
+    district_matcher = DistrictMatcher(Path("boundaries/rayony.geojson"))
+    city_parser = CityParser(region_name=region_name_uk, district_matcher=district_matcher)
     city_parser.apply_file(str(clipped_pbf))
     logger.info(f"Extracted {len(city_parser.cities)} cities.")
 

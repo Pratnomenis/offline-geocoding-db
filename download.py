@@ -5,8 +5,11 @@ from pathlib import Path
 from tqdm import tqdm
 
 GEOFABRIK_URL = "https://download.geofabrik.de/europe/ukraine-latest.osm.pbf"
+RAYONY_URL = "https://raw.githubusercontent.com/slawomirmatuszak/ukrainian_geodata/main/rayony.geojson"
 DATA_DIR = Path("data")
+BOUNDARIES_DIR = Path("boundaries")
 OSM_FILE = DATA_DIR / "ukraine-latest.osm.pbf"
+RAYONY_FILE = BOUNDARIES_DIR / "rayony.geojson"
 MAX_FILE_AGE_DAYS = 1
 
 def is_file_fresh(filepath: Path, max_age_days: int) -> bool:
@@ -38,6 +41,13 @@ def download_file(url: str, output_path: Path) -> None:
             bar.update(size)
 
 def main() -> None:
+    if not RAYONY_FILE.exists():
+        print(f"Downloading district boundaries from {RAYONY_URL} to {RAYONY_FILE}...")
+        download_file(RAYONY_URL, RAYONY_FILE)
+        print("District boundaries download complete.")
+    else:
+        print(f"District boundaries file {RAYONY_FILE} already exists.")
+
     if is_file_fresh(OSM_FILE, MAX_FILE_AGE_DAYS):
         print(f"File {OSM_FILE} is less than {MAX_FILE_AGE_DAYS} day(s) old. Using cached version.")
     else:

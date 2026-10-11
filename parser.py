@@ -5,24 +5,78 @@ from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+import json
+from pathlib import Path
+from shapely.geometry import shape, Point
+from shapely.strtree import STRtree
+
+class DistrictMatcher:
+    def __init__(self, geojson_path: Path):
+        self.enabled = False
+        self.geoms = []
+        self.names = []
+        self.tree = None
+        
+        if geojson_path.exists():
+            try:
+                with open(geojson_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.geoms = [shape(f['geometry']) for f in data.get('features', [])]
+                self.names = [f['properties'].get('rayon', '') for f in data.get('features', [])]
+                if self.geoms:
+                    self.tree = STRtree(self.geoms)
+                    self.enabled = True
+                    logger.info(f"Loaded {len(self.geoms)} district boundaries from {geojson_path}")
+            except Exception as e:
+                logger.warning(f"Could not load district boundaries from {geojson_path}: {e}")
+        else:
+            logger.warning(f"District boundaries file not found at {geojson_path}")
+
+    def find_district(self, lat: float, lon: float) -> Optional[str]:
+        if not self.enabled or self.tree is None:
+            return None
+        
+        pt = Point(lon, lat)
+        idx = self.tree.query(pt, predicate='intersects')
+        if len(idx) > 0:
+            return self.names[idx[0]]
+        
+        # Check nearest within ~5km threshold if on boundary
+        nearest_idx = self.tree.nearest(pt)
+        if self.geoms[nearest_idx].distance(pt) < 0.05:
+            return self.names[nearest_idx]
+            
+        return None
+
 class CityParser(osmium.SimpleHandler):
-    def __init__(self, region_name: Optional[str] = None):
+    def __init__(self, region_name: Optional[str] = None, district_matcher: Optional[DistrictMatcher] = None):
         super().__init__()
         self.cities: List[Dict[str, Any]] = []
         self._next_db_id = 1
         self.region_name = region_name
+        self.district_matcher = district_matcher
 
     def node(self, n):
         if n.tags.get('place') in ('city', 'town', 'village', 'hamlet', 'suburb'):
             if 'name' in n.tags:
-                district = n.tags.get('addr:district') or n.tags.get('is_in:district')
-                region = n.tags.get('addr:province') or n.tags.get('is_in:state') or self.region_name
+                lat = n.location.lat
+                lon = n.location.lon
+                
+                district = None
+                if self.district_matcher:
+                    district = self.district_matcher.find_district(lat, lon)
+                
+                if not district:
+                    district = n.tags.get('addr:district') or n.tags.get('is_in:district')
+                
+                region = self.region_name or n.tags.get('addr:province') or n.tags.get('is_in:state')
+                
                 self.cities.append({
                     'db_id': self._next_db_id,
                     'osm_id': n.id,
                     'name': n.tags['name'],
-                    'lat': n.location.lat,
-                    'lon': n.location.lon,
+                    'lat': lat,
+                    'lon': lon,
                     'district': district,
                     'region': region,
                 })
