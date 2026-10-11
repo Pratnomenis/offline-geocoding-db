@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install System Dependencies (osmium-tool)
-        run: sudo apt-get update && sudo apt-get install -y osmium-tool jq
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool jq gzip
 
       - name: Install Python Dependencies
         run: |
@@ -31,11 +31,17 @@ jobs:
 
       - name: Run Pipeline for All Regions
         run: |
-          # Читаємо всі ключі (регіони) з regions.json і запускаємо для кожного
           for region in $(jq -r 'keys[]' regions.json); do
             echo "Processing region: $region"
             python pipeline.py --input data/ukraine-latest.osm.pbf --region "$region"
           done
+
+      - name: Compress Databases and Generate Manifest
+        run: |
+          echo "Compressing SQLite databases with gzip -9..."
+          gzip -9 output/*.db
+          echo "Generating output/manifest.json..."
+          python generate_manifest.py --output-dir output
 
       - name: Update Latest Release
         uses: softprops/action-gh-release@v1
@@ -43,6 +49,8 @@ jobs:
           tag_name: latest
           name: "Latest Database Update"
           body: "Автоматично згенеровані бази даних. Оновлюються щотижня."
-          files: output/*.db
+          files: |
+            output/*.db.gz
+            output/manifest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
