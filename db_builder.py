@@ -12,7 +12,9 @@ def create_schema(conn: sqlite3.Connection):
             name TEXT NOT NULL,
             lat REAL NOT NULL,
             lon REAL NOT NULL,
-            osm_id INTEGER
+            osm_id INTEGER,
+            district TEXT,
+            region TEXT
         );
 
         CREATE TABLE IF NOT EXISTS streets (
@@ -49,8 +51,8 @@ def insert_cities(conn: sqlite3.Connection, cities: List[Dict[str, Any]]) -> Non
     cursor = conn.cursor()
     for city in cities:
         cursor.execute(
-            "INSERT INTO cities (id, name, lat, lon, osm_id) VALUES (?, ?, ?, ?, ?)",
-            (city['db_id'], city['name'], city['lat'], city['lon'], city['osm_id'])
+            "INSERT INTO cities (id, name, lat, lon, osm_id, district, region) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (city['db_id'], city['name'], city['lat'], city['lon'], city['osm_id'], city.get('district'), city.get('region'))
         )
         cursor.execute(
             "INSERT INTO places_fts (name, type, entity_id) VALUES (?, ?, ?)",

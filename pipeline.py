@@ -45,7 +45,7 @@ def main():
 
     # Step 2: Parse Cities (Pass 1)
     logger.info("Pass 1: Extracting cities...")
-    city_parser = CityParser()
+    city_parser = CityParser(region_name=args.region)
     city_parser.apply_file(str(clipped_pbf))
     logger.info(f"Extracted {len(city_parser.cities)} cities.")
 

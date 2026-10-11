@@ -6,20 +6,25 @@ from typing import List, Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 class CityParser(osmium.SimpleHandler):
-    def __init__(self):
+    def __init__(self, region_name: Optional[str] = None):
         super().__init__()
         self.cities: List[Dict[str, Any]] = []
         self._next_db_id = 1
+        self.region_name = region_name
 
     def node(self, n):
         if n.tags.get('place') in ('city', 'town', 'village', 'hamlet', 'suburb'):
             if 'name' in n.tags:
+                district = n.tags.get('addr:district') or n.tags.get('is_in:district')
+                region = n.tags.get('addr:province') or n.tags.get('is_in:state') or self.region_name
                 self.cities.append({
                     'db_id': self._next_db_id,
                     'osm_id': n.id,
                     'name': n.tags['name'],
                     'lat': n.location.lat,
                     'lon': n.location.lon,
+                    'district': district,
+                    'region': region,
                 })
                 self._next_db_id += 1
 
