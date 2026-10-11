@@ -120,3 +120,42 @@ def transliterate_house_number(raw_num: Optional[str]) -> str:
 
     # Transliterate any remaining Cyrillic letters
     return transliterate_uk(num_str)
+
+def transliterate_hromada(name_uk: Optional[str]) -> str:
+    """Converts a Ukrainian territorial community (hromada) name to English.
+    Examples:
+      'Гатненська сільська громада' -> 'Hatne Hromada'
+      'Бишівська сільська громада' -> 'Byshiv Hromada'
+      'Макарівська селищна громада' -> 'Makariv Hromada'
+      'Київ' -> 'Kyiv Hromada'
+    """
+    if not name_uk:
+        return ""
+
+    clean = re.sub(
+        r'\s+(територіальна|сільська|селищна|міська)?\s*громада.*$',
+        '',
+        name_uk,
+        flags=re.IGNORECASE
+    ).strip()
+
+    stem = clean
+    if stem.endswith('івська'):
+        stem = stem[:-6] + 'ів'
+    elif stem.endswith('ївська'):
+        stem = stem[:-6] + 'їв'
+    elif stem.endswith('енська'):
+        stem = stem[:-6] + 'е'
+    elif stem.endswith('инська'):
+        stem = stem[:-6] + 'ин'
+    elif stem.endswith('інська'):
+        stem = stem[:-6] + 'ін'
+    elif stem.endswith('ська'):
+        stem = stem[:-4]
+    elif stem.endswith('цька'):
+        stem = stem[:-4] + 'цьк'
+    elif stem.endswith('зька'):
+        stem = stem[:-4] + 'зьк'
+
+    en = transliterate_uk(stem)
+    return f"{en} Hromada" if en else ""

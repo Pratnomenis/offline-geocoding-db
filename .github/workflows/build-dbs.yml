@@ -29,6 +29,9 @@ jobs:
       - name: Download Ukraine OSM Data
         run: python download.py
 
+      - name: Run Test Suite
+        run: python test_suite.py
+
       - name: Run Pipeline for All Regions
         run: |
           for region in $(jq -r 'keys[]' regions.json); do

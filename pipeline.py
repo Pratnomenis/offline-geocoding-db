@@ -49,7 +49,10 @@ def main() -> None:
     logger.info("Pass 1: Extracting cities...")
     region_name_uk = region_info.get('name_uk', args.region)
     region_name_en = region_info.get('name_en', args.region)
-    district_matcher = DistrictMatcher(Path("boundaries/rayony.geojson"))
+    district_matcher = DistrictMatcher(
+        geojson_path=Path("boundaries/rayony.geojson"),
+        hromady_path=Path("boundaries/hromady.geojson")
+    )
     city_parser = CityParser(
         region_name_uk=region_name_uk,
         region_name_en=region_name_en,
@@ -60,7 +63,7 @@ def main() -> None:
 
     # Step 3: Parse Streets & Houses (Pass 2 & 3 combined using node cache)
     logger.info("Pass 2: Extracting streets and houses...")
-    address_parser = AddressParser(city_parser.cities)
+    address_parser = AddressParser(city_parser.cities, boundary_matcher=district_matcher)
     address_parser.apply_file(str(clipped_pbf), locations=True)
     logger.info(f"Extracted {len(address_parser.streets)} streets and {len(address_parser.houses)} houses.")
 

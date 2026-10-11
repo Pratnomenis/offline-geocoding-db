@@ -40,6 +40,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
             name_en TEXT,
             city_type TEXT,
             city_type_en TEXT,
+            community TEXT,
+            community_en TEXT,
             district TEXT,
             district_en TEXT,
             region TEXT,
@@ -56,6 +58,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
             name TEXT NOT NULL,
             name_en TEXT,
             old_name TEXT,
+            old_name_en TEXT,
             type_id INTEGER DEFAULT 1,
             lat REAL NOT NULL,
             lon REAL NOT NULL,
@@ -88,11 +91,16 @@ def create_schema(conn: sqlite3.Connection) -> None:
             name,
             name_en,
             old_name,
+            old_name_en,
             type,        -- 'city', 'street', 'house'
             entity_id
         );
 
+        CREATE INDEX IF NOT EXISTS idx_cities_name ON cities(name);
+        CREATE INDEX IF NOT EXISTS idx_cities_district ON cities(district);
+        CREATE INDEX IF NOT EXISTS idx_cities_community ON cities(community);
         CREATE INDEX IF NOT EXISTS idx_streets_city_id ON streets(city_id);
+        CREATE INDEX IF NOT EXISTS idx_streets_name ON streets(name);
         CREATE INDEX IF NOT EXISTS idx_streets_type_id ON streets(type_id);
         CREATE INDEX IF NOT EXISTS idx_houses_street_id ON houses(street_id);
     """)
@@ -110,15 +118,18 @@ def insert_cities(conn: sqlite3.Connection, cities: List[Dict[str, Any]]) -> Non
         cursor.execute(
             """INSERT INTO cities (
                 id, name, name_en, city_type, city_type_en,
+                community, community_en,
                 district, district_en, region, region_en, postcode,
                 lat, lon, osm_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 city['db_id'],
                 city['name'],
                 city.get('name_en'),
                 city.get('city_type'),
                 city.get('city_type_en'),
+                city.get('community'),
+                city.get('community_en'),
                 city.get('district'),
                 city.get('district_en'),
                 city.get('region'),
@@ -130,8 +141,8 @@ def insert_cities(conn: sqlite3.Connection, cities: List[Dict[str, Any]]) -> Non
             )
         )
         cursor.execute(
-            "INSERT INTO places_fts (name, name_en, old_name, type, entity_id) VALUES (?, ?, ?, ?, ?)",
-            (city['name'], city.get('name_en'), None, 'city', city['db_id'])
+            "INSERT INTO places_fts (name, name_en, old_name, old_name_en, type, entity_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (city['name'], city.get('name_en'), None, None, 'city', city['db_id'])
         )
 
 def insert_streets(conn: sqlite3.Connection, streets: List[Dict[str, Any]]) -> None:
@@ -139,14 +150,15 @@ def insert_streets(conn: sqlite3.Connection, streets: List[Dict[str, Any]]) -> N
     for street in streets:
         cursor.execute(
             """INSERT INTO streets (
-                id, city_id, name, name_en, old_name, type_id, lat, lon, osm_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                id, city_id, name, name_en, old_name, old_name_en, type_id, lat, lon, osm_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 street['db_id'],
                 street['city_id'],
                 street['name'],
                 street.get('name_en'),
                 street.get('old_name'),
+                street.get('old_name_en'),
                 street.get('type_id', 1),
                 street['lat'],
                 street['lon'],
@@ -154,8 +166,8 @@ def insert_streets(conn: sqlite3.Connection, streets: List[Dict[str, Any]]) -> N
             )
         )
         cursor.execute(
-            "INSERT INTO places_fts (name, name_en, old_name, type, entity_id) VALUES (?, ?, ?, ?, ?)",
-            (street['name'], street.get('name_en'), street.get('old_name'), 'street', street['db_id'])
+            "INSERT INTO places_fts (name, name_en, old_name, old_name_en, type, entity_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (street['name'], street.get('name_en'), street.get('old_name'), street.get('old_name_en'), 'street', street['db_id'])
         )
 
 def insert_houses(conn: sqlite3.Connection, houses: List[Dict[str, Any]]) -> None:
@@ -184,8 +196,8 @@ def insert_houses(conn: sqlite3.Connection, houses: List[Dict[str, Any]]) -> Non
                 (house_id, lat, lat, lon, lon)
             )
             cursor.execute(
-                "INSERT INTO places_fts (name, name_en, old_name, type, entity_id) VALUES (?, ?, ?, ?, ?)",
-                (house['number'], house.get('number_en'), None, 'house', house_id)
+                "INSERT INTO places_fts (name, name_en, old_name, old_name_en, type, entity_id) VALUES (?, ?, ?, ?, ?, ?)",
+                (house['number'], house.get('number_en'), None, None, 'house', house_id)
             )
 
 def build_database(
